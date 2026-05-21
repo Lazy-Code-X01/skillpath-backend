@@ -11,7 +11,7 @@ const options: swaggerJsdoc.Options = {
     servers: [
       {
         url: process.env.NODE_ENV === 'production'
-          ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+          ? `https://${process.env.PUBLIC_DOMAIN}`
           : 'http://localhost:5000',
         description: process.env.NODE_ENV === 'production'
           ? 'Production Server'
