@@ -8,7 +8,7 @@ export class UserController {
    */
   async getProfile(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const user = await userService.getUserById(userId);
       sendSuccess(res, { user }, 'Profile fetched successfully');
     } catch (error: any) {
@@ -18,7 +18,7 @@ export class UserController {
 
   async updateProfile(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { goal, currentLevel, dailyTime } = req.body;
       const user = await userService.updateUserPreferences(userId, { goal, currentLevel, dailyTime });
       sendSuccess(res, { user }, 'Profile updated successfully');
