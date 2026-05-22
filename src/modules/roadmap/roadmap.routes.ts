@@ -4,10 +4,6 @@ import { verifyToken } from '../../middleware/auth.middleware';
 
 const router = Router();
 
-// Apply authorization check globally on all roadmap routes
-router.use(verifyToken);
-
-// Create new roadmap
 /**
  * @swagger
  * /api/roadmap/generate:
@@ -22,15 +18,11 @@ router.use(verifyToken);
  *         description: Roadmap generated successfully
  *       401:
  *         description: Unauthorized
- *       500:
- *         description: AI generation failed
+ *       400:
+ *         description: AI generation failed or onboarding incomplete
  */
-router.post('/', roadmapController.create);
+router.post('/generate', verifyToken, roadmapController.generateRoadmap);
 
-// Get all roadmaps for the current user
-router.get('/', roadmapController.getAll);
-
-// Get roadmap by ID (or user's roadmap)
 /**
  * @swagger
  * /api/roadmap/{userId}:
@@ -54,10 +46,7 @@ router.get('/', roadmapController.getAll);
  *       401:
  *         description: Unauthorized
  */
-router.get('/:id', roadmapController.getById);
-
-// Update roadmap by ID
-router.put('/:id', roadmapController.update);
+router.get('/:userId', verifyToken, roadmapController.getRoadmap);
 
 export const roadmapRoutes = router;
 export default roadmapRoutes;

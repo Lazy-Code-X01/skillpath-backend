@@ -1,16 +1,19 @@
 import { Schema, model, Document } from 'mongoose';
 
 export interface IRoadmap extends Document {
+  _id: any;
   userId: Schema.Types.ObjectId;
   title: string;
-  description?: string;
-  steps: {
+  estimatedWeeks: number;
+  stages: {
+    stage: number;
     title: string;
-    description: string;
-    status: 'pending' | 'in-progress' | 'completed';
-    resources?: string[];
+    topics: {
+      name: string;
+      estimatedDays: number;
+    }[];
   }[];
-  createdAt: Date;
+  generatedAt: Date;
 }
 
 const RoadmapSchema = new Schema<IRoadmap>({
@@ -18,21 +21,29 @@ const RoadmapSchema = new Schema<IRoadmap>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+    unique: true,
   },
   title: {
     type: String,
     required: true,
   },
-  description: String,
-  steps: [
+  estimatedWeeks: {
+    type: Number,
+    required: true,
+  },
+  stages: [
     {
-      title: { type: String, required: true },
-      description: { type: String, required: true },
-      status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
-      resources: [String],
+      stage: Number,
+      title: String,
+      topics: [
+        {
+          name: String,
+          estimatedDays: Number,
+        },
+      ],
     },
   ],
-  createdAt: {
+  generatedAt: {
     type: Date,
     default: Date.now,
   },
