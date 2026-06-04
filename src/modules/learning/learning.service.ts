@@ -1,46 +1,44 @@
-import { LearningMaterial, ILearningMaterial } from './learning.model';
+import { Course, ICourse, UserProgress, IUserProgress } from './learning.model';
 
 export class LearningService {
-  /**
-   * Add a new learning material tracking record.
-   */
-  async addMaterial(userId: string, data: Partial<ILearningMaterial>): Promise<ILearningMaterial> {
-    const newMaterial = new LearningMaterial({
-      userId,
-      ...data,
-    });
-    return await newMaterial.save();
+  async getAllCourses(): Promise<ICourse[]> {
+    return Course.find();
   }
 
-  /**
-   * Get all learning materials tracked by a user.
-   */
-  async getUserMaterials(userId: string): Promise<ILearningMaterial[]> {
-    return LearningMaterial.find({ userId }).sort({ createdAt: -1 });
+  async getCourseById(courseId: string): Promise<ICourse> {
+    const course = await Course.findById(courseId);
+    if (!course) throw new Error('Course not found');
+    return course;
   }
 
-  /**
-   * Fetch details of a specific learning material.
-   */
-  async getMaterialById(id: string): Promise<ILearningMaterial | null> {
-    return LearningMaterial.findById(id);
-  }
+  async markLessonComplete(
+    userId: string,
+    courseId: string,
+    lessonId: string
+  ): Promise<IUserProgress> {
+    const course = await Course.findById(courseId);
+    if (!course) throw new Error('Course not found');
 
-  /**
-   * Update the progress, notes, or details of a material.
-   */
-  async updateMaterial(id: string, updates: Partial<ILearningMaterial>): Promise<ILearningMaterial | null> {
-    if (updates.progress === 100) {
-      updates.isCompleted = true;
-    }
-    return LearningMaterial.findByIdAndUpdate(id, { $set: updates }, { new: true });
-  }
+    const lessonExists = course.modules.some((m) =>
+      m.lessons.some((l) => l._id?.toString() === lessonId)
+    );
+    if (!lessonExists) throw new Error('Lesson not found');
 
-  /**
-   * Delete a learning material record.
-   */
-  async deleteMaterial(id: string): Promise<ILearningMaterial | null> {
-    return LearningMaterial.findByIdAndDelete(id);
+    await UserProgress.findOneAndUpdate(
+      { userId, courseId },
+      { $addToSet: { completedLessons: lessonId }, lastAccessedAt: new Date() },
+      { upsert: true, new: true }
+    );
+
+    const progress = await UserProgress.findOne({ userId, courseId });
+    const completedCount = progress!.completedLessons.length;
+    const progressPercent = Math.round((completedCount / course.totalLessons) * 1000) / 10;
+
+    return (await UserProgress.findOneAndUpdate(
+      { userId, courseId },
+      { $set: { progressPercent } },
+      { new: true }
+    ))!;
   }
 }
 

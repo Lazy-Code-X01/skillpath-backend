@@ -1,37 +1,82 @@
 import { Schema, model, Document } from 'mongoose';
 
-export interface ILearningMaterial extends Document {
-  userId: Schema.Types.ObjectId;
+export interface ILesson {
+  _id?: any;
   title: string;
-  type: 'article' | 'video' | 'book' | 'interactive';
-  contentUrl?: string;
-  notes?: string;
-  progress: number; // percentage completed
-  isCompleted: boolean;
+  content: string;
+  estimatedMinutes: number;
+  order: number;
+}
+
+export interface IModule {
+  _id?: any;
+  title: string;
+  order: number;
+  lessons: ILesson[];
+}
+
+export interface ICourse extends Document {
+  _id: any;
+  title: string;
+  description: string;
+  category: string;
+  level: string;
+  instructor: string;
+  totalLessons: number;
+  modules: IModule[];
   createdAt: Date;
 }
 
-const LearningMaterialSchema = new Schema<ILearningMaterial>({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  title: {
+export interface IUserProgress extends Document {
+  _id: any;
+  userId: Schema.Types.ObjectId;
+  courseId: Schema.Types.ObjectId;
+  completedLessons: Schema.Types.ObjectId[];
+  progressPercent: number;
+  lastAccessedAt: Date;
+}
+
+const LessonSchema = new Schema<ILesson>({
+  title: { type: String, required: true },
+  content: { type: String, required: true },
+  estimatedMinutes: { type: Number, required: true },
+  order: { type: Number, required: true },
+});
+
+const ModuleSchema = new Schema<IModule>({
+  title: { type: String, required: true },
+  order: { type: Number, required: true },
+  lessons: [LessonSchema],
+});
+
+const CourseSchema = new Schema<ICourse>({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  category: {
     type: String,
     required: true,
+    enum: ['Web Dev', 'Data Science', 'UI/UX', 'Python', 'Cloud', 'Mobile'],
   },
-  type: {
+  level: {
     type: String,
-    enum: ['article', 'video', 'book', 'interactive'],
-    default: 'article',
+    required: true,
+    enum: ['beginner', 'intermediate', 'advanced'],
   },
-  contentUrl: String,
-  notes: String,
-  progress: { type: Number, default: 0, min: 0, max: 100 },
-  isCompleted: { type: Boolean, default: false },
+  instructor: { type: String, required: true },
+  totalLessons: { type: Number, required: true },
+  modules: [ModuleSchema],
   createdAt: { type: Date, default: Date.now },
 });
 
-export const LearningMaterial = model<ILearningMaterial>('LearningMaterial', LearningMaterialSchema);
-export default LearningMaterial;
+const UserProgressSchema = new Schema<IUserProgress>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+  completedLessons: [{ type: Schema.Types.ObjectId }],
+  progressPercent: { type: Number, default: 0 },
+  lastAccessedAt: { type: Date, default: Date.now },
+});
+
+UserProgressSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+
+export const Course = model<ICourse>('Course', CourseSchema);
+export const UserProgress = model<IUserProgress>('UserProgress', UserProgressSchema);

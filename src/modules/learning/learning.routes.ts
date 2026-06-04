@@ -4,16 +4,9 @@ import { verifyToken } from '../../middleware/auth.middleware';
 
 const router = Router();
 
-// Apply auth middleware to all routes
-router.use(verifyToken);
-
-// Create new tracking
-router.post('/', learningController.create);
-
-// Fetch all materials
 /**
  * @swagger
- * /api/learning/courses:
+ * /api/learning:
  *   get:
  *     tags:
  *       - Learning
@@ -23,38 +16,64 @@ router.post('/', learningController.create);
  *     responses:
  *       200:
  *         description: Returns list of courses
+ *       401:
+ *         description: Unauthorized
  */
-router.get('/', learningController.getAll);
+router.get('/', verifyToken, learningController.getCourses);
 
-// Fetch specific material by ID
-router.get('/:id', learningController.getById);
-
-// Update progress/details (Marking completed)
 /**
  * @swagger
- * /api/learning/lessons/{id}/complete:
+ * /api/learning/{courseId}:
+ *   get:
+ *     tags:
+ *       - Learning
+ *     summary: Get a single course by ID
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: courseId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Returns course object with modules and lessons
+ *       404:
+ *         description: Course not found
+ */
+router.get('/:courseId', verifyToken, learningController.getCourse);
+
+/**
+ * @swagger
+ * /api/learning/lessons/complete:
  *   patch:
  *     tags:
  *       - Learning
  *     summary: Mark a lesson as completed
  *     security:
  *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - courseId
+ *               - lessonId
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *               lessonId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Lesson marked as complete
- *       404:
- *         description: Lesson not found
+ *       400:
+ *         description: Missing fields or lesson not found
  */
-router.put('/:id', learningController.update);
-
-// Delete tracked item
-router.delete('/:id', learningController.delete);
+router.patch('/lessons/complete', verifyToken, learningController.completeLesson);
 
 export const learningRoutes = router;
 export default learningRoutes;
