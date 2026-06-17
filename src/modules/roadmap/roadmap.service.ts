@@ -44,11 +44,15 @@ Rules:
 - Be specific and practical, not generic`;
 
     const raw = await callClaude(systemPrompt, userPrompt);
+    const cleaned = raw
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
 
-    let parsed: any;
+    let parsedRoadmap: any;
     try {
-      parsed = JSON.parse(raw);
-    } catch {
+      parsedRoadmap = JSON.parse(cleaned);
+    } catch (e) {
       throw new Error('Failed to parse AI response');
     }
 
@@ -57,12 +61,12 @@ Rules:
     if (existing) {
       return (await Roadmap.findOneAndUpdate(
         { userId },
-        { $set: { ...parsed, generatedAt: new Date() } },
+        { $set: { ...parsedRoadmap, generatedAt: new Date() } },
         { new: true }
       ))!;
     }
 
-    const roadmap = new Roadmap({ userId, ...parsed });
+    const roadmap = new Roadmap({ userId, ...parsedRoadmap });
     return await roadmap.save();
   }
 
