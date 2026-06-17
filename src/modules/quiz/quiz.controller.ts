@@ -3,81 +3,54 @@ import { quizService } from './quiz.service';
 import { sendSuccess, sendError } from '../../utils/response';
 
 export class QuizController {
-  /**
-   * Create a new quiz.
-   */
-  async create(req: Request, res: Response): Promise<void> {
+  async generateQuiz(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        sendError(res, 'User identity not found in request context.', 401);
+      const { lessonId, courseId } = req.body;
+      if (!lessonId || !courseId) {
+        sendError(res, 'lessonId and courseId are required', 400);
         return;
       }
-
-      const quiz = await quizService.createQuiz(userId, req.body);
-      sendSuccess(res, quiz, 'Quiz created successfully.', 201);
+      const quiz = await quizService.generateQuizForLesson(lessonId, courseId);
+      sendSuccess(res, { quiz }, 'Quiz generated successfully', 201);
     } catch (error: any) {
-      sendError(res, error.message || 'Failed to create quiz.', 500);
+      sendError(res, error.message, 400);
     }
   }
 
-  /**
-   * Get all quizzes for the logged-in user.
-   */
-  async getAll(req: Request, res: Response): Promise<void> {
+  async getQuiz(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        sendError(res, 'User identity not found in request context.', 401);
-        return;
-      }
-
-      const quizzes = await quizService.getUserQuizzes(userId);
-      sendSuccess(res, quizzes, 'User quizzes retrieved successfully.');
+      const { lessonId } = req.params;
+      const quiz = await quizService.getQuizByLesson(lessonId);
+      sendSuccess(res, { quiz }, 'Quiz fetched successfully');
     } catch (error: any) {
-      sendError(res, error.message || 'Failed to retrieve quizzes.', 500);
+      sendError(res, error.message, 404);
     }
   }
 
-  /**
-   * Get details of a single quiz.
-   */
-  async getById(req: Request, res: Response): Promise<void> {
+  async submitQuiz(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const quiz = await quizService.getQuizById(id);
-      if (!quiz) {
-        sendError(res, 'Quiz not found.', 404);
+      const userId = req.user!.id;
+      const { quizId } = req.params;
+      const { answers, timeTaken } = req.body;
+      if (!answers || !Array.isArray(answers)) {
+        sendError(res, 'Answers array is required', 400);
         return;
       }
-      sendSuccess(res, quiz, 'Quiz retrieved successfully.');
+      const result = await quizService.submitQuizAnswers(userId, quizId, answers, timeTaken || 0);
+      sendSuccess(res, result, 'Quiz submitted successfully');
     } catch (error: any) {
-      sendError(res, error.message || 'Failed to retrieve quiz.', 500);
+      sendError(res, error.message, 400);
     }
   }
 
-  /**
-   * Submit completed quiz responses.
-   */
-  async submit(req: Request, res: Response): Promise<void> {
+  async getAttempts(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const { score } = req.body;
-
-      if (typeof score !== 'number') {
-        sendError(res, 'A numerical score is required for submission.', 400);
-        return;
-      }
-
-      const completedQuiz = await quizService.submitQuiz(id, score);
-      if (!completedQuiz) {
-        sendError(res, 'Quiz not found or update failed.', 404);
-        return;
-      }
-
-      sendSuccess(res, completedQuiz, 'Quiz submitted and graded successfully.');
+      const userId = req.user!.id;
+      const { quizId } = req.params;
+      const attempts = await quizService.getQuizAttempts(userId, quizId);
+      sendSuccess(res, { attempts }, 'Attempts fetched successfully');
     } catch (error: any) {
-      sendError(res, error.message || 'Failed to submit quiz.', 500);
+      sendError(res, error.message, 400);
     }
   }
 }
