@@ -78,5 +78,23 @@ const UserProgressSchema = new Schema<IUserProgress>({
 
 UserProgressSchema.index({ userId: 1, courseId: 1 }, { unique: true });
 
+export interface IEnrollment extends Document {
+  _id: any;
+  userId: Schema.Types.ObjectId;
+  courseId: Schema.Types.ObjectId;
+  enrolledAt: Date;
+  status: 'active' | 'completed' | 'dropped';
+}
+
+const EnrollmentSchema = new Schema<IEnrollment>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
+  enrolledAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['active', 'completed', 'dropped'], default: 'active' },
+});
+
+EnrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
+
 export const Course = model<ICourse>('Course', CourseSchema);
 export const UserProgress = model<IUserProgress>('UserProgress', UserProgressSchema);
+export const Enrollment = model<IEnrollment>('Enrollment', EnrollmentSchema);

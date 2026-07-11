@@ -36,6 +36,41 @@ export class LearningController {
       sendError(res, error.message, 400);
     }
   }
+
+  async enrollCourse(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { courseId } = req.body;
+      if (!courseId) {
+        sendError(res, 'courseId is required', 400);
+        return;
+      }
+      const enrollment = await learningService.enrollUserInCourse(userId, courseId);
+      sendSuccess(res, { enrollment }, 'Enrolled successfully', 201);
+    } catch (error: any) {
+      sendError(res, error.message, 400);
+    }
+  }
+
+  async getEnrollments(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const enrollments = await learningService.getEnrolledCourses(userId);
+      sendSuccess(res, { enrollments }, 'Enrolled courses fetched successfully');
+    } catch (error: any) {
+      sendError(res, error.message, 400);
+    }
+  }
+
+  async getProgressSummary(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const summary = await learningService.getUserProgressSummary(userId);
+      sendSuccess(res, { summary }, 'Progress summary fetched successfully');
+    } catch (error: any) {
+      sendError(res, error.message, 400);
+    }
+  }
 }
 
 export const learningController = new LearningController();

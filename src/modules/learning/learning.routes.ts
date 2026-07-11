@@ -23,6 +23,64 @@ router.get('/', verifyToken, learningController.getCourses);
 
 /**
  * @swagger
+ * /api/learning/enroll:
+ *   post:
+ *     tags:
+ *       - Learning
+ *     summary: Enroll the logged in user in a course
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - courseId
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Enrolled successfully
+ *       400:
+ *         description: Already enrolled or course not found
+ */
+router.post('/enroll', verifyToken, learningController.enrollCourse);
+
+/**
+ * @swagger
+ * /api/learning/enrollments:
+ *   get:
+ *     tags:
+ *       - Learning
+ *     summary: Get all courses the logged in user is enrolled in with progress
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns array of enrollment objects with course data and progress
+ */
+router.get('/enrollments', verifyToken, learningController.getEnrollments);
+
+/**
+ * @swagger
+ * /api/learning/progress/summary:
+ *   get:
+ *     tags:
+ *       - Learning
+ *     summary: Get overall progress summary for the logged in user
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns summary with totalCoursesStarted, totalLessonsCompleted, averageProgress, and per-course breakdown
+ */
+router.get('/progress/summary', verifyToken, learningController.getProgressSummary);
+
+/**
+ * @swagger
  * /api/learning/{courseId}:
  *   get:
  *     tags:
