@@ -1,16 +1,21 @@
-import pdf from 'pdf-parse';
+import fs from 'fs';
+import pdfParse from 'pdf-parse';
 
-/**
- * Parses text from a PDF Buffer using pdf-parse.
- * @param fileBuffer Buffer containing PDF data
- * @returns Promise resolving to the pdf-parse Result
- */
-export const parsePDF = async (fileBuffer: Buffer): Promise<pdf.Result> => {
+export const extractTextFromPDF = async (filePath: string): Promise<{ text: string; pageCount: number }> => {
+  const dataBuffer = fs.readFileSync(filePath);
+  const data = await pdfParse(dataBuffer);
+  return {
+    text: data.text,
+    pageCount: data.numpages,
+  };
+};
+
+export const cleanupFile = (filePath: string): void => {
   try {
-    const data = await pdf(fileBuffer);
-    return data;
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
   } catch (error) {
-    console.error('Failed to parse PDF document:', error);
-    throw error;
+    console.error('Failed to delete temp file:', error);
   }
 };

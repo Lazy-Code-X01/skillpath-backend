@@ -5,10 +5,6 @@ import { uploadPDF } from '../../middleware/upload.middleware';
 
 const router = Router();
 
-// Protect all document routes
-router.use(verifyToken);
-
-// Upload a single PDF file (using 'file' as key)
 /**
  * @swagger
  * /api/document/upload:
@@ -30,23 +26,34 @@ router.use(verifyToken);
  *                 format: binary
  *     responses:
  *       201:
- *         description: Returns document record with summary
+ *         description: Returns document with overview, summary, and keyPoints
  *       400:
- *         description: Invalid file or upload error
+ *         description: No file uploaded or unreadable PDF
  */
-router.post('/upload', uploadPDF.single('file'), documentController.upload);
+router.post('/upload', verifyToken, uploadPDF.single('file'), documentController.uploadAndSummarise);
 
-// Retrieve user's document history
-router.get('/', documentController.getAll);
+/**
+ * @swagger
+ * /api/document/:
+ *   get:
+ *     tags:
+ *       - Document
+ *     summary: Get all documents uploaded by the logged in user
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns array of document objects
+ */
+router.get('/', verifyToken, documentController.getDocuments);
 
-// Get specific document by ID (retrieving the summary)
 /**
  * @swagger
  * /api/document/{id}/summary:
  *   get:
  *     tags:
  *       - Document
- *     summary: Retrieve a previously generated document summary
+ *     summary: Get a specific document summary by ID
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -57,14 +64,11 @@ router.get('/', documentController.getAll);
  *           type: string
  *     responses:
  *       200:
- *         description: Returns summary object
+ *         description: Returns document with full summary
  *       404:
  *         description: Document not found
  */
-router.get('/:id', documentController.getById);
-
-// Delete a document by ID
-router.delete('/:id', documentController.delete);
+router.get('/:id/summary', verifyToken, documentController.getDocument);
 
 export const documentRoutes = router;
 export default documentRoutes;

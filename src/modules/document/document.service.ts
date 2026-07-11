@@ -1,66 +1,92 @@
-import fs from 'fs';
 import { Document, IDocument } from './document.model';
-import { parsePDF } from '../../utils/pdfParser';
+import { extractTextFromPDF, cleanupFile } from '../../utils/pdfParser';
+import { callClaude } from '../../utils/anthropic';
 
 export class DocumentService {
-  /**
-   * Register a uploaded document record and extract text.
-   */
-  async processUploadedDocument(
+  async summarisePDF(
     userId: string,
-    file: Express.Multer.File
+    filePath: string,
+    filename: string,
+    fileSize: number
   ): Promise<IDocument> {
-    let parsedText = '';
+    const { text, pageCount } = await extractTextFromPDF(filePath);
 
-    if (file.mimetype === 'application/pdf') {
-      try {
-        const fileBuffer = fs.readFileSync(file.path);
-        const pdfData = await parsePDF(fileBuffer);
-        parsedText = pdfData.text;
-      } catch (err) {
-        console.error('Error parsing PDF content in DocumentService:', err);
-      }
+    if (!text || text.trim().length < 50) {
+      cleanupFile(filePath);
+      throw new Error('PDF appears to be empty or unreadable');
     }
 
-    const doc = new Document({
-      userId,
-      fileName: file.filename,
-      originalName: file.originalname,
-      filePath: file.path,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-      parsedText,
-    });
+    const truncatedText = text.length > 8000 ? text.slice(0, 8000) : text;
 
-    return await doc.save();
+    const doc = await new Document({
+      userId,
+      filename,
+      fileSize,
+      pageCount,
+      summary: '',
+      overview: '',
+      keyPoints: [],
+      status: 'processing',
+    }).save();
+
+    try {
+      const systemPrompt =
+        'You are an expert document summariser. Your job is to extract key information from documents and present it clearly. You must respond ONLY with valid JSON — no explanation, no markdown, no backticks, no preamble. Return only the raw JSON object.';
+
+      const userPrompt = `Summarise the following document content and extract the most important information.
+
+Document: ${filename}
+Content:
+${truncatedText}
+
+Return a JSON object with this exact structure:
+{
+  "overview": "string — one clear paragraph summarising what this document is about",
+  "summary": "string — a detailed 2-3 paragraph summary of the main content",
+  "keyPoints": ["string", "string", "string"] — array of 5 to 8 key points or takeaways
+}
+
+Rules:
+- overview should be 2-3 sentences max
+- summary should cover the main ideas thoroughly
+- keyPoints should be specific and actionable, not generic
+- Write in clear, simple English`;
+
+      const raw = await callClaude(systemPrompt, userPrompt);
+      const cleaned = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      const updated = await Document.findByIdAndUpdate(
+        doc._id,
+        {
+          $set: {
+            overview: parsed.overview,
+            summary: parsed.summary,
+            keyPoints: parsed.keyPoints,
+            extractedText: truncatedText,
+            status: 'done',
+          },
+        },
+        { new: true }
+      );
+
+      cleanupFile(filePath);
+      return updated!;
+    } catch (error) {
+      await Document.findByIdAndUpdate(doc._id, { $set: { status: 'failed' } });
+      cleanupFile(filePath);
+      throw error;
+    }
   }
 
-  /**
-   * Retrieve all uploaded documents for a user.
-   */
+  async getDocumentById(documentId: string, userId: string): Promise<IDocument> {
+    const doc = await Document.findOne({ _id: documentId, userId });
+    if (!doc) throw new Error('Document not found');
+    return doc;
+  }
+
   async getUserDocuments(userId: string): Promise<IDocument[]> {
     return Document.find({ userId }).sort({ createdAt: -1 });
-  }
-
-  /**
-   * Retrieve a specific document details.
-   */
-  async getDocumentById(id: string): Promise<IDocument | null> {
-    return Document.findById(id);
-  }
-
-  /**
-   * Delete a document and its local file.
-   */
-  async deleteDocument(id: string): Promise<IDocument | null> {
-    const doc = await Document.findById(id);
-    if (doc) {
-      if (fs.existsSync(doc.filePath)) {
-        fs.unlinkSync(doc.filePath);
-      }
-      await doc.deleteOne();
-    }
-    return doc;
   }
 }
 
