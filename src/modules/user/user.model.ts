@@ -5,10 +5,11 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password?: string;
+  role: 'user' | 'admin';
   preferences: {
     goal: string;
     currentLevel: string;
-    dailyTime: number; // in minutes
+    dailyTime: number;
   };
   createdAt: Date;
 }
@@ -29,6 +30,7 @@ const UserSchema = new Schema<IUser>({
     type: String,
     required: true,
   },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
   preferences: {
     goal: { type: String, default: '' },
     currentLevel: { type: String, default: '' },

@@ -9,6 +9,7 @@ import { roadmapRoutes } from './modules/roadmap/roadmap.routes';
 import { learningRoutes } from './modules/learning/learning.routes';
 import { quizRoutes } from './modules/quiz/quiz.routes';
 import { documentRoutes } from './modules/document/document.routes';
+import { adminRoutes } from './modules/admin/admin.routes';
 import { errorHandler } from './middleware/error.middleware';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/roadmap', roadmapRoutes);
 app.use('/api/learning', learningRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/document', documentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Global Error Handler (Must be registered after all other routes/middlewares)
 app.use(errorHandler);
